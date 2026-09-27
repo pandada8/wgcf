@@ -1,6 +1,41 @@
 package wireguard
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+)
+
+func TestNewSingBoxConfig(t *testing.T) {
+	config, err := NewSingBoxConfig(&SingBoxProfileData{
+		PrivateKey: "private",
+		Address1:   "172.16.0.2",
+		Address2:   "2606:4700::1",
+		PublicKey:  "public",
+		Endpoint:   "engage.cloudflareclient.com:2408",
+		ClientID:   "2zBs",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encoded, err := json.Marshal(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{`"reserved":[219,48,108]`, `"port":2408`, `"address":"engage.cloudflareclient.com"`, `"172.16.0.2/32"`} {
+		if !strings.Contains(string(encoded), expected) {
+			t.Errorf("expected JSON to contain %s, got %s", expected, encoded)
+		}
+	}
+}
+
+func TestNewSingBoxConfigRejectsInvalidClientID(t *testing.T) {
+	_, err := NewSingBoxConfig(&SingBoxProfileData{ClientID: "not-base64"})
+	if err == nil {
+		t.Fatal("expected invalid client_id error")
+	}
+}
 
 func TestGenerateProfile(t *testing.T) {
 	var expectedResult = `[Interface]
